@@ -1,7 +1,9 @@
 package com.example.springbootmicroservicecurrencyconversion.controller;
 
 import com.example.springbootmicroservicecurrencyconversion.domain.CurrencyConversion;
+import com.example.springbootmicroservicecurrencyconversion.exception.ServiceException;
 import com.example.springbootmicroservicecurrencyconversion.proxy.CurrencyExchangeServiceProxy;
+import com.netflix.hystrix.contrib.javanica.annotation.HystrixCommand;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +51,7 @@ public class CurrencyConversionController {
                 response.getPort());
     }
 
+    @HystrixCommand(fallbackMethod = "errorResponse")
     @GetMapping("/currency-converter-feign/from/{from}/to/{to}/quantity/{quantity}")
     public CurrencyConversion convertCurrencyFeign(
             @PathVariable final String from,
@@ -68,6 +71,14 @@ public class CurrencyConversionController {
                 quantity.multiply(response.getConversionMultiple()),
                 response.getPort()
         );
+    }
+
+    private CurrencyConversion errorResponse(
+            final String from,
+            final String to,
+            final BigDecimal quantity
+    ) throws ServiceException {
+        throw new ServiceException(String.format("Sorry, no conversion found from %s to %s", from, to));
     }
 
 }
